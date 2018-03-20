@@ -10,7 +10,7 @@ public class MidiPlayer {
     public static final int NOTE_OFF = 0x80;
     public static final String[] NOTE_NAMES = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
-    public MidiPlayer() {
+    public MidiPlayer(String file) {
         try {
             // Obtains the default Sequencer connected to a default device.
             Sequencer sequencer = MidiSystem.getSequencer();
@@ -20,16 +20,14 @@ public class MidiPlayer {
             sequencer.open();
 
             // create a stream from a file
-            InputStream is = new BufferedInputStream(new FileInputStream(new File("audio/ddlctheme.mid")));
+            InputStream is = new BufferedInputStream(new FileInputStream(new File(file)));
 
             // Sets the current sequence on which the sequencer operates.
             // The stream must point to MIDI file data.
             sequencer.setSequence(is);
-
-            // Starts playback of the MIDI data in the currently loaded sequence.
             sequencer.start();
 
-            MidiReader("audio/ddlctheme.mid");
+            MidiReader(file);
 
         } catch (Exception e) {
             e.printStackTrace();

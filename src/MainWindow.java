@@ -3,6 +3,9 @@ import java.awt.event.*;
 import javax.swing.*;
 import java.util.*;
 import java.util.List;
+import java.io.File;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileSystemView;
 
 public class MainWindow extends JFrame implements ActionListener {
     private JMenuBar menuBar;
@@ -14,6 +17,10 @@ public class MainWindow extends JFrame implements ActionListener {
 
     private static final int N = 100;
     private final List<JToggleButton> list = new ArrayList<>();
+
+    public static final int NOTE_ON = 0x90;
+    public static final int NOTE_OFF = 0x80;
+    public static final String[] NOTE_NAMES = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
     public MainWindow() {
         super("Document");
@@ -83,9 +90,12 @@ public class MainWindow extends JFrame implements ActionListener {
         JMenuItem choice = (JMenuItem) e.getSource();
         if (choice == saveI) {
             //not yet implmented
-        } else if (choice == exitI){
+        }else if (choice == loadI) {
+            loadFile();
+        }else if (choice == exitI){
             System.exit(0);
         }
+
 
         /*else if (choice == cutI) {
             pad = ta.getSelectedText();
@@ -99,6 +109,16 @@ public class MainWindow extends JFrame implements ActionListener {
         else if (e.getSource() == statusI) {
             //not yet implmented
         }*/
+    }
+
+    public void loadFile(){
+        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+        int returnValue = jfc.showOpenDialog(null);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = jfc.getSelectedFile();
+            System.out.println("Loading: " + selectedFile.getAbsolutePath());
+            MidiPlayer app = new MidiPlayer(selectedFile.getAbsolutePath());
+        }
     }
 
     private JToggleButton getGridButton(int r, int c) {
