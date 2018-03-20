@@ -1,10 +1,10 @@
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import java.util.*;
-import java.util.List;
 
-public class MainWindow extends JFrame implements ActionListener {
+public class Document extends JFrame implements ActionListener {
+    private JTextArea ta;
+    private int count;
     private JMenuBar menuBar;
     private JMenu fileM, editM, viewM;
     private JScrollPane scpane;
@@ -12,34 +12,34 @@ public class MainWindow extends JFrame implements ActionListener {
     private String pad;
     private JToolBar toolBar;
 
-    private static final int N = 100;
-    private final List<JToggleButton> list = new ArrayList<>();
-
-    public MainWindow() {
+    public Document() {
         super("Document");
-        setSize(1280, 720);
+        setSize(600, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         Container pane = getContentPane();
         pane.setLayout(new BorderLayout());
 
-
-        menuBar = new JMenuBar();
-        fileM = new JMenu("File");
-        editM = new JMenu("Edit");
-        viewM = new JMenu("View");
+        count = 0;
+        pad = " ";
+        ta = new JTextArea(); //textarea
+        menuBar = new JMenuBar(); //menubar
+        fileM = new JMenu("File"); //file menu
+        editM = new JMenu("Edit"); //edit menu
+        viewM = new JMenu("View"); //edit menu
+        scpane = new JScrollPane(ta); //scrollpane  and add textarea to scrollpane
         exitI = new JMenuItem("Exit");
         cutI = new JMenuItem("Cut");
         copyI = new JMenuItem("Copy");
         pasteI = new JMenuItem("Paste");
-        selectI = new JMenuItem("Select All");
-        saveI = new JMenuItem("Save");
-        loadI = new JMenuItem("Load");
-        statusI = new JMenuItem("Status");
+        selectI = new JMenuItem("Select All"); //menuitems
+        saveI = new JMenuItem("Save"); //menuitems
+        loadI = new JMenuItem("Load"); //menuitems
+        statusI = new JMenuItem("Status"); //menuitems
         toolBar = new JToolBar();
 
-
-        scpane = new JScrollPane(createGridPanel());
+        ta.setLineWrap(true);
+        ta.setWrapStyleWord(true);
 
         setJMenuBar(menuBar);
         menuBar.add(fileM);
@@ -83,11 +83,9 @@ public class MainWindow extends JFrame implements ActionListener {
         JMenuItem choice = (JMenuItem) e.getSource();
         if (choice == saveI) {
             //not yet implmented
-        } else if (choice == exitI){
+        } else if (choice == exitI)
             System.exit(0);
-        }
-
-        /*else if (choice == cutI) {
+        else if (choice == cutI) {
             pad = ta.getSelectedText();
             ta.replaceRange("", ta.getSelectionStart(), ta.getSelectionEnd());
         } else if (choice == copyI)
@@ -98,38 +96,27 @@ public class MainWindow extends JFrame implements ActionListener {
             ta.selectAll();
         else if (e.getSource() == statusI) {
             //not yet implmented
-        }*/
-    }
-
-    private JToggleButton getGridButton(int r, int c) {
-        int index = r * N + c;
-        return list.get(index);
-    }
-
-    private JToggleButton createGridButton(final int row, final int col) {
-        final JToggleButton b = new JToggleButton("r" + row + ",c" + col);
-        b.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JToggleButton gb = MainWindow.this.getGridButton(row, col);
-                System.out.println("r" + row + ",c" + col
-                        + " " + (b == gb)
-                        + " " + (b.equals(gb)));
-            }
-        });
-        return b;
-    }
-
-    private JPanel createGridPanel() {
-        JPanel p = new JPanel(new GridLayout(N, N));
-        for (int i = 0; i < N * N; i++) {
-            int row = i / N;
-            int col = i % N;
-            JToggleButton gb = createGridButton(row, col);
-            list.add(gb);
-            p.add(gb);
         }
-        return p;
+    }
+
+    public static void main(String[] args) {
+        try {
+            // Set System L&F
+            UIManager.setLookAndFeel(
+                    UIManager.getSystemLookAndFeelClassName());
+        }
+        catch (UnsupportedLookAndFeelException e) {
+            // handle exception
+        }
+        catch (ClassNotFoundException e) {
+            // handle exception
+        }
+        catch (InstantiationException e) {
+            // handle exception
+        }
+        catch (IllegalAccessException e) {
+            // handle exception
+        }
+        new Document();
     }
 }
