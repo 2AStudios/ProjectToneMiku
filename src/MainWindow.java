@@ -5,25 +5,25 @@ import java.util.*;
 import java.util.List;
 import java.io.File;
 import javax.swing.JFileChooser;
-import javax.swing.filechooser.FileSystemView;
+import javax.swing.filechooser.*;
 
 public class MainWindow extends JFrame implements ActionListener {
     private JMenuBar menuBar;
     private JMenu fileM, editM, viewM;
     private JScrollPane scpane;
     private JMenuItem exitI, cutI, copyI, pasteI, selectI, saveI, loadI, statusI;
-    private String pad;
     private JToolBar toolBar;
 
-    private static final int N = 100;
-    private final List<JToggleButton> list = new ArrayList<>();
+    static int[] defaultScale = new int[]{48,83};//{36,95};
+    static int scaleLength = 64;
+    final List<JToggleButton> list = new ArrayList<>();
 
     public static final int NOTE_ON = 0x90;
     public static final int NOTE_OFF = 0x80;
     public static final String[] NOTE_NAMES = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
     public MainWindow() {
-        super("Document");
+        super("Project TM");
         setSize(1280, 720);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -113,6 +113,12 @@ public class MainWindow extends JFrame implements ActionListener {
 
     public void loadFile(){
         JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+
+        jfc.setDialogTitle("Select an MIDI file");
+        jfc.setAcceptAllFileFilterUsed(false);
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("MIDI Audio Data Files", "mid");
+        jfc.addChoosableFileFilter(filter);
+
         int returnValue = jfc.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             File selectedFile = jfc.getSelectedFile();
@@ -122,33 +128,49 @@ public class MainWindow extends JFrame implements ActionListener {
     }
 
     private JToggleButton getGridButton(int r, int c) {
-        int index = r * N + c;
+        int index = r * scaleLength + c;
         return list.get(index);
     }
 
     private JToggleButton createGridButton(final int row, final int col) {
-        final JToggleButton b = new JToggleButton("r" + row + ",c" + col);
+        String noteName = NOTE_NAMES[row % 12];
+        final JToggleButton b;
+        if(row == 0) {
+            b = new JToggleButton(col + "");
+            b.setBackground(new Color(19,122,127));
+            b.setContentAreaFilled(false);
+            b.setOpaque(true);
+            b.setFocusable(false);
+        }else if(col == 0) {
+            b = new JToggleButton(noteName);
+            b.setBackground(new Color(134,206,203));
+            b.setContentAreaFilled(false);
+            b.setOpaque(true);
+            b.setFocusable(false);
+        }else {
+            b = new JToggleButton(String.valueOf("\u266A"));
+        }
         b.addActionListener(new ActionListener() {
-
             @Override
             public void actionPerformed(ActionEvent e) {
                 JToggleButton gb = MainWindow.this.getGridButton(row, col);
                 System.out.println("r" + row + ",c" + col
                         + " " + (b == gb)
                         + " " + (b.equals(gb)));
+                //System.out.println(gb.getText());
             }
         });
         return b;
     }
 
     private JPanel createGridPanel() {
-        JPanel p = new JPanel(new GridLayout(N, N));
-        for (int i = 0; i < N * N; i++) {
-            int row = i / N;
-            int col = i % N;
-            JToggleButton gb = createGridButton(row, col);
-            list.add(gb);
-            p.add(gb);
+        JPanel p = new JPanel(new GridLayout(defaultScale[1]-defaultScale[0], scaleLength));
+        for (int row = 0; row < defaultScale[1]-defaultScale[0]; row++) {
+            for(int col = 0; col<scaleLength;col++) {
+                JToggleButton gb = createGridButton(row, col);
+                list.add(gb);
+                p.add(gb);
+            }
         }
         return p;
     }
