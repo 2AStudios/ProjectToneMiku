@@ -10,12 +10,18 @@ public class MidiPlayer {
     public static final int NOTE_ON = 0x90;
     public static final int NOTE_OFF = 0x80;
     public static final String[] NOTE_NAMES = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-    public HashMap<Tuple<Integer,Integer>,Tuple<Integer,Long>> noteMap = new HashMap<>(); //Row, Col, Note, Time
+    public HashMap<Main.Tuple<Integer,Integer>, Main.Tuple<Integer,Long>> noteMap = new HashMap<>(); //Row, Col, Note, Time
 
-    public MidiPlayer(String file) {
+    MainWindow main;
+    Sequencer sequencer;
+
+    private static final boolean debug = false;
+
+    public MidiPlayer(String file, MainWindow main) {
+        this.main = main;
         try {
             // Obtains the default Sequencer connected to a default device.
-            Sequencer sequencer = MidiSystem.getSequencer();
+            sequencer = MidiSystem.getSequencer();
 
             // Opens the device, indicating that it should now acquire any
             // system resources it requires and become operational.
@@ -37,14 +43,23 @@ public class MidiPlayer {
 
     }
 
+    public void playTrack(long startPoint, float tempo){
+        sequencer.setMicrosecondPosition(startPoint);
+        sequencer.setTempoFactor(tempo);
+        sequencer.start();
+    }
+
     public void MidiReader(String file) throws Exception {
         Sequence sequence = MidiSystem.getSequence(new File(file));
 
+        long longestTime = 0;
         Set<Long> timeRate = new HashSet<>();
         for (Track track : sequence.getTracks()) {
             for (int i = 0; i < track.size(); i++) {
                 MidiEvent event = track.get(i);
                 timeRate.add(event.getTick());
+                if(longestTime < event.getTick())
+                    longestTime = event.getTick();
             }
         }
         long soundInterval = findGCD((Long[])timeRate.toArray(new Long[timeRate.size()]),timeRate.size());
@@ -53,11 +68,11 @@ public class MidiPlayer {
         int trackNumber = 0;
         for (Track track : sequence.getTracks()) {
             trackNumber++;
-            System.out.println("Track " + trackNumber + ": size = " + track.size());
+            if(debug)System.out.println("Track " + trackNumber + ": size = " + track.size());
             System.out.println();
             for (int i = 0; i < track.size(); i++) {
                 MidiEvent event = track.get(i);
-                System.out.print("@" + event.getTick() + " ");
+                if(debug) System.out.print("@" + event.getTick() + " ");
                 MidiMessage message = event.getMessage();
                 if (message instanceof ShortMessage) {
                     ShortMessage sm = (ShortMessage) message;
@@ -68,40 +83,34 @@ public class MidiPlayer {
                         int note = key % 12;
                         String noteName = NOTE_NAMES[note];
                         int velocity = sm.getData2();
-                        System.out.println("Note on, " + noteName + octave + " key=" + key + " velocity: " + velocity);
-                        noteMap.put(new Tuple<>(key-MainWindow.defaultScale[0]+1,(int)(event.getTick()/soundInterval)),new Tuple<>(key,event.getTick()));
+                        if(debug)System.out.println("Note on, " + noteName + octave + " key=" + key + " velocity: " + velocity);
+                        noteMap.put(new Main().new Tuple<>(key-MainWindow.defaultScale[0]+1,(int)(event.getTick()/soundInterval)+1),new Main().new Tuple<>(key,event.getTick()));
                     } else if (sm.getCommand() == NOTE_OFF) {
                         int key = sm.getData1();
                         int octave = (key / 12) - 1;
                         int note = key % 12;
                         String noteName = NOTE_NAMES[note];
                         int velocity = sm.getData2();
-                        System.out.println("Note off, " + noteName + octave + " key=" + key + " velocity: " + velocity);
+                        if(debug)System.out.println("Note off, " + noteName + octave + " key=" + key + " velocity: " + velocity);
                     } else {
-                        System.out.println("Command:" + sm.getCommand());
+                        if(debug)System.out.println("Command:" + sm.getCommand());
                     }
                 } else {
-                    System.out.println("Other message: " + message.getClass());
+                    if(debug)System.out.println("Other message: " + message.getClass());
                 }
             }
             System.out.println();
         }
-        Iterator it = noteMap.entrySet().iterator();
+        main.tempo = soundInterval;
+        main.updateGridPanel(noteMap,(int)(longestTime/soundInterval));
+        /*Iterator it = noteMap.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
-            Tuple<>
-            System.out.println(pair.getKey().x + " = " + pair.getValue());
+            Main.Tuple<Integer,Integer> key = (Main.Tuple<Integer,Integer>) pair.getKey();
+            Main.Tuple<Integer,Long> value = (Main.Tuple<Integer, Long>) pair.getValue();
+            System.out.println(key.x + " | " + key.y +  " = " + value.x + " | " + value.y);
             //it.remove(); // avoids a ConcurrentModificationException
-        }
-    }
-
-    public class Tuple<X, Y> {
-        public X x; //Animation Set
-        public Y y; //Animation Frame
-        public Tuple(X x, Y y) {
-            this.x = x;
-            this.y = y;
-        }
+        }*/
     }
 
     static long gcd(long a, long b)
