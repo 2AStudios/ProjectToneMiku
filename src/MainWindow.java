@@ -167,7 +167,13 @@ public class MainWindow extends JFrame implements ActionListener {
     private JToggleButton createGridButton(final int row, final int col) {
         String noteName = NOTE_NAMES[row % 12];
         final JToggleButton b;
-        if(row == 0) {
+        if(row == defaultScale[1]-defaultScale[0]+2) {
+            b = new JToggleButton(String.valueOf("\u2022"));
+            b.setBackground(new Color(142,219,216));
+            b.setContentAreaFilled(false);
+            b.setOpaque(true);
+            b.setFocusable(false);
+        }else if(row == defaultScale[1]-defaultScale[0]+1){
             b = new JToggleButton(col + "");
             b.setBackground(new Color(19,122,127));
             b.setContentAreaFilled(false);
@@ -204,8 +210,8 @@ public class MainWindow extends JFrame implements ActionListener {
     }
 
     private JPanel createGridPanel() {
-        JPanel p = new JPanel(new GridLayout(defaultScale[1]-defaultScale[0], scaleLength));
-        for (int row = 0; row < defaultScale[1]-defaultScale[0]; row++) {
+        JPanel p = new JPanel(new GridLayout(defaultScale[1]-defaultScale[0]+2, scaleLength+1));
+        for (int row = defaultScale[1]-defaultScale[0]+2; row > 0 ; row--) {
             for(int col = 0; col<scaleLength;col++) {
                 JToggleButton gb = createGridButton(row, col);
                 buttonHashMap.put(new Main().new Tuple<>(row,col),gb);
@@ -220,8 +226,8 @@ public class MainWindow extends JFrame implements ActionListener {
         pane.remove(scpane);
         System.out.println("Updating");
         scaleLength = newScaleLength + 32;
-        noteMatrix = new JPanel(new GridLayout(defaultScale[1]-defaultScale[0], scaleLength));
-        for (int row = 0; row < defaultScale[1]-defaultScale[0]; row++) {
+        noteMatrix = new JPanel(new GridLayout(defaultScale[1]-defaultScale[0]+2, scaleLength+1));
+        for (int row = defaultScale[1]-defaultScale[0]+2; row > 0 ; row--) {
             for(int col = 0; col<scaleLength;col++) {
                 JToggleButton gb;
                 Main.Tuple<Integer, Integer> keyValue = new Main().new Tuple<>(row,col);

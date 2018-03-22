@@ -84,7 +84,7 @@ public class MidiPlayer {
                         String noteName = NOTE_NAMES[note];
                         int velocity = sm.getData2();
                         if(debug)System.out.println("Note on, " + noteName + octave + " key=" + key + " velocity: " + velocity);
-                        noteMap.put(new Main().new Tuple<>(key-MainWindow.defaultScale[0]+1,(int)(event.getTick()/soundInterval)+1),new Main().new Tuple<>(key,event.getTick()));
+                        noteMap.put(new Main().new Tuple<>(key-MainWindow.defaultScale[0],(int)(event.getTick()/soundInterval)+1),new Main().new Tuple<>(key,event.getTick()));
                     } else if (sm.getCommand() == NOTE_OFF) {
                         int key = sm.getData1();
                         int octave = (key / 12) - 1;
