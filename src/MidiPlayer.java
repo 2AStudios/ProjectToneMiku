@@ -49,6 +49,12 @@ public class MidiPlayer {
         sequencer.start();
     }
 
+    public void pauseTrack(){
+        if(sequencer.isRunning()){
+            sequencer.stop();
+        }
+    }
+
     public void MidiReader(String file) throws Exception {
         Sequence sequence = MidiSystem.getSequence(new File(file));
 

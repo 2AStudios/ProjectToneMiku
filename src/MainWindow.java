@@ -2,7 +2,6 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.util.*;
-import java.util.List;
 import java.io.File;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.*;
@@ -15,7 +14,8 @@ public class MainWindow extends JFrame implements ActionListener {
     private JMenuItem exitI, cutI, copyI, pasteI, selectI, saveI, loadI, statusI;
     private JToolBar toolBar;
 
-    JButton playTrackButton;
+    private JButton playTrackButton;
+    private HashMap<String,ImageIcon> menuButtonImages = new HashMap<>();
 
     static int[] defaultScale = new int[]{48,95};//{36,95};
     static int scaleLength = 64;
@@ -29,6 +29,7 @@ public class MainWindow extends JFrame implements ActionListener {
     public float tempomodifier = 1.0f;
 
     public static MidiPlayer app;
+    public static AudioPlayerThread playerThread;
 
     public MainWindow() {
         super("Project TM");
@@ -99,9 +100,10 @@ public class MainWindow extends JFrame implements ActionListener {
 
     private void createToolBar(){
         toolBar = new JToolBar();
-        ImageIcon icon = new ImageIcon(new ImageIcon("img/playbtn_icon.png").getImage().getScaledInstance(32, 32, Image.SCALE_DEFAULT));
+        menuButtonImages.put("playbtn_icon", new ImageIcon(new ImageIcon("img/playbtn_icon.png").getImage().getScaledInstance(32, 32, Image.SCALE_DEFAULT)));
+        menuButtonImages.put("pausebtn_icon", new ImageIcon(new ImageIcon("img/pausebtn_icon.png").getImage().getScaledInstance(32, 32, Image.SCALE_DEFAULT)));
 
-        playTrackButton = new JButton(icon);
+        playTrackButton = new JButton(menuButtonImages.get("playbtn_icon"));
         toolBar.add(playTrackButton);
 
         playTrackButton.addActionListener(this);
@@ -122,7 +124,16 @@ public class MainWindow extends JFrame implements ActionListener {
             JButton choice = (JButton) e.getSource();
             if (choice == playTrackButton) {
                 if (app != null) {
-                    app.playTrack(0, tempomodifier);
+                    if(!app.sequencer.isRunning()) {
+                        playTrackButton.setIcon(menuButtonImages.get("pausebtn_icon"));
+                        app.playTrack(0, tempomodifier);
+                        playerThread = new AudioPlayerThread();
+                        playerThread.start();
+                    }else{
+                        playTrackButton.setIcon(menuButtonImages.get("playbtn_icon"));
+                        app.pauseTrack();
+                        playerThread.interrupt();
+                    }
                 }
                 //addAudioColumn();
             }
@@ -225,7 +236,7 @@ public class MainWindow extends JFrame implements ActionListener {
         Container pane = getContentPane();
         pane.remove(scpane);
         System.out.println("Updating");
-        scaleLength = newScaleLength + 32;
+        scaleLength = newScaleLength;
         noteMatrix = new JPanel(new GridLayout(defaultScale[1]-defaultScale[0]+2, scaleLength+1));
         for (int row = defaultScale[1]-defaultScale[0]+2; row > 0 ; row--) {
             for(int col = 0; col<scaleLength;col++) {
@@ -266,4 +277,22 @@ public class MainWindow extends JFrame implements ActionListener {
         scaleLength++;
         return scaleLength;
     }*/
+
+    class AudioPlayerThread extends Thread{
+
+        public AudioPlayerThread(){
+
+        }
+        public void run(){
+            while(app.sequencer.isRunning()) {
+                scpane.getHorizontalScrollBar().setValue((int)(scpane.getHorizontalScrollBar().getMaximum()*((double)app.sequencer.getMicrosecondPosition()/app.sequencer.getMicrosecondLength())));
+                //System.out.println("Moving Pane: " + scpane.getHorizontalScrollBar().getValue());
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ex) { }
+            }
+        }
+    }
 }
+
+
