@@ -14,6 +14,7 @@ public class MidiPlayer {
 
     MainWindow main;
     Sequencer sequencer;
+    Track mainTrack;
 
     private static final boolean debug = false;
 
@@ -75,6 +76,15 @@ public class MidiPlayer {
         for (Track track : sequence.getTracks()) {
             trackNumber++;
             if(debug)System.out.println("Track " + trackNumber + ": size = " + track.size());
+
+            if(mainTrack == null){
+                mainTrack = track;
+            }else{
+                if(mainTrack.size() < track.size()){
+                    mainTrack = track;
+                }
+            }
+
             System.out.println();
             for (int i = 0; i < track.size(); i++) {
                 MidiEvent event = track.get(i);
