@@ -11,6 +11,7 @@ public class MidiPlayer {
     public static final int NOTE_OFF = 0x80;
     public static final String[] NOTE_NAMES = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
     public HashMap<Main.Tuple<Integer,Integer>, Main.Tuple<Integer,Long>> noteMap = new HashMap<>(); //Row, Col, Note, Time
+    public HashMap<Main.Tuple<Integer,Long>, Main.Tuple<MidiEvent,MidiEvent>> midiEventHashMap = new HashMap<>(); //Row, Col, StartEvent, EndEvent
 
     MainWindow main;
     Sequencer sequencer;
@@ -35,7 +36,8 @@ public class MidiPlayer {
             // The stream must point to MIDI file data.
             sequencer.setSequence(is);
             //sequencer.start();
-
+            noteMap = new HashMap<>();
+            midiEventHashMap = new HashMap<>();
             MidiReader(file);
 
         } catch (Exception e) {
@@ -64,10 +66,13 @@ public class MidiPlayer {
             newSM = new ShortMessage(NOTE_ON,0,note,127);
             MidiEvent me = new MidiEvent(newSM,notePosition);
             sequencer.getSequence().getTracks()[mainTrackIndex].add(me);
+            midiEventHashMap.put(new Main().new Tuple<>(note,me.getTick()),new Main().new Tuple<>(me,me));
+
             newSM = new ShortMessage(NOTE_OFF,0,note,127);
             me = new MidiEvent(newSM,notePosition+main.tempo);
             sequencer.getSequence().getTracks()[mainTrackIndex].add(me);
             sequencer.recordDisable(sequencer.getSequence().getTracks()[mainTrackIndex]);
+            midiEventHashMap.get(new Main().new Tuple<>(note,me.getTick()-main.tempo)).y = me;
 
             if(debug) {
                 for (int i = 0; i < sequencer.getSequence().getTracks()[mainTrackIndex].size(); i++) {
@@ -100,6 +105,24 @@ public class MidiPlayer {
                     }
                 }
             }
+
+            if(debug)System.out.println("@" + me.getTick() + " key: " + newSM.getData1() + " velocity: " + newSM.getData2());
+        } catch (InvalidMidiDataException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void removeNote(int note, long notePosition){
+        ShortMessage newSM = null;
+        try {
+            sequencer.recordEnable(sequencer.getSequence().getTracks()[mainTrackIndex],0);
+            newSM = new ShortMessage(NOTE_ON,0,note,127);
+            MidiEvent me = new MidiEvent(newSM,notePosition);
+            sequencer.getSequence().getTracks()[mainTrackIndex].remove(me);
+            newSM = new ShortMessage(NOTE_OFF,0,note,127);
+            me = new MidiEvent(newSM,notePosition+main.tempo);
+            System.out.println(sequencer.getSequence().getTracks()[mainTrackIndex].remove(me));
+            sequencer.recordDisable(sequencer.getSequence().getTracks()[mainTrackIndex]);
 
             if(debug)System.out.println("@" + me.getTick() + " key: " + newSM.getData1() + " velocity: " + newSM.getData2());
         } catch (InvalidMidiDataException e) {
@@ -155,6 +178,7 @@ public class MidiPlayer {
                         //System.out.println(sm.getChannel());
                         if(debug)System.out.println("Note on, " + noteName + octave + " key=" + key + " velocity: " + velocity);
                         noteMap.put(new Main().new Tuple<>(key-MainWindow.defaultScale[0],(int)(event.getTick()/soundInterval)+1),new Main().new Tuple<>(key,event.getTick()));
+                        midiEventHashMap.put(new Main().new Tuple<>(key,event.getTick()),new Main().new Tuple<>(event,event));
                     } else if (sm.getCommand() == NOTE_OFF) {
                         int key = sm.getData1();
                         int octave = (key / 12) - 1;
@@ -162,6 +186,7 @@ public class MidiPlayer {
                         String noteName = NOTE_NAMES[note];
                         int velocity = sm.getData2();
                         if(debug)System.out.println("Note off, " + noteName + octave + " key=" + key + " velocity: " + velocity);
+                        midiEventHashMap.get(new Main().new Tuple<>(key,event.getTick()-soundInterval)).y = event;
                     } else {
                         if(debug)System.out.println("Command:" + sm.getCommand());
                     }

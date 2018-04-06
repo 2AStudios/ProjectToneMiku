@@ -239,11 +239,12 @@ public class MainWindow extends JFrame implements ActionListener {
                         gb.setBackground(new Color(140, 35, 103));
                         gb.setContentAreaFilled(false);
                         gb.setOpaque(true);
+                        app.addNote(row+defaultScale[0],(col-1)*tempo);
                     }else{
                         gb.setContentAreaFilled(true);
                         gb.setOpaque(false);
+                        app.removeNote(row+defaultScale[0],(col-1)*tempo);
                     }
-                    app.addNote(row+defaultScale[0],(col-1)*tempo);
                     System.out.println("r" + row + ",c" + col
                             + " " + (b == gb)
                             + " " + (b.equals(gb)));
