@@ -14,7 +14,7 @@ public class MidiPlayer {
 
     MainWindow main;
     Sequencer sequencer;
-    Track mainTrack;
+    int mainTrackIndex;
 
     private static final boolean debug = false;
 
@@ -52,7 +52,58 @@ public class MidiPlayer {
 
     public void pauseTrack(){
         if(sequencer.isRunning()){
+            main.trackLoc = sequencer.getMicrosecondPosition();
             sequencer.stop();
+        }
+    }
+
+    public void addNote(int note, long notePosition){
+        ShortMessage newSM = null;
+        try {
+            sequencer.recordEnable(sequencer.getSequence().getTracks()[mainTrackIndex],0);
+            newSM = new ShortMessage(NOTE_ON,0,note,127);
+            MidiEvent me = new MidiEvent(newSM,notePosition);
+            sequencer.getSequence().getTracks()[mainTrackIndex].add(me);
+            newSM = new ShortMessage(NOTE_OFF,0,note,127);
+            me = new MidiEvent(newSM,notePosition+main.tempo);
+            sequencer.getSequence().getTracks()[mainTrackIndex].add(me);
+            sequencer.recordDisable(sequencer.getSequence().getTracks()[mainTrackIndex]);
+
+            if(debug) {
+                for (int i = 0; i < sequencer.getSequence().getTracks()[mainTrackIndex].size(); i++) {
+                    MidiEvent event = sequencer.getSequence().getTracks()[mainTrackIndex].get(i);
+                    System.out.print("@" + event.getTick() + " ");
+                    MidiMessage message = event.getMessage();
+                    if (message instanceof ShortMessage) {
+                        ShortMessage sm = (ShortMessage) message;
+                        System.out.print("Channel: " + sm.getChannel() + " ");
+                        if (sm.getCommand() == NOTE_ON) {
+                            int key = sm.getData1();
+                            int octave = (key / 12) - 1;
+                            int note2 = key % 12;
+                            String noteName = NOTE_NAMES[note2];
+                            int velocity = sm.getData2();
+                            //System.out.println(sm.getChannel());
+                            System.out.println("Note on, " + noteName + octave + " key=" + key + " velocity: " + velocity);
+                        } else if (sm.getCommand() == NOTE_OFF) {
+                            int key = sm.getData1();
+                            int octave = (key / 12) - 1;
+                            int note2 = key % 12;
+                            String noteName = NOTE_NAMES[note2];
+                            int velocity = sm.getData2();
+                            System.out.println("Note off, " + noteName + octave + " key=" + key + " velocity: " + velocity);
+                        } else {
+                            System.out.println("Command:" + sm.getCommand());
+                        }
+                    } else {
+                        System.out.println("Other message: " + message.getClass());
+                    }
+                }
+            }
+
+            if(debug)System.out.println("@" + me.getTick() + " key: " + newSM.getData1() + " velocity: " + newSM.getData2());
+        } catch (InvalidMidiDataException e) {
+            e.printStackTrace();
         }
     }
 
@@ -73,6 +124,7 @@ public class MidiPlayer {
         System.out.println("Audio Interval: "  + soundInterval);
 
         int trackNumber = 0;
+        Track mainTrack = null;
         for (Track track : sequence.getTracks()) {
             trackNumber++;
             if(debug)System.out.println("Track " + trackNumber + ": size = " + track.size());
@@ -82,6 +134,7 @@ public class MidiPlayer {
             }else{
                 if(mainTrack.size() < track.size()){
                     mainTrack = track;
+                    mainTrackIndex = trackNumber-1;
                 }
             }
 
@@ -99,6 +152,7 @@ public class MidiPlayer {
                         int note = key % 12;
                         String noteName = NOTE_NAMES[note];
                         int velocity = sm.getData2();
+                        //System.out.println(sm.getChannel());
                         if(debug)System.out.println("Note on, " + noteName + octave + " key=" + key + " velocity: " + velocity);
                         noteMap.put(new Main().new Tuple<>(key-MainWindow.defaultScale[0],(int)(event.getTick()/soundInterval)+1),new Main().new Tuple<>(key,event.getTick()));
                     } else if (sm.getCommand() == NOTE_OFF) {

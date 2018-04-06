@@ -27,6 +27,8 @@ public class MainWindow extends JFrame implements ActionListener {
 
     public long tempo = 600;
     public float tempomodifier = 1.0f;
+    public long trackLoc = 0;
+    JToggleButton trackLocButton;
 
     public static MidiPlayer app;
     public static AudioPlayerThread playerThread;
@@ -126,7 +128,7 @@ public class MainWindow extends JFrame implements ActionListener {
                 if (app != null) {
                     if(!app.sequencer.isRunning()) {
                         playTrackButton.setIcon(menuButtonImages.get("pausebtn_icon"));
-                        app.playTrack(0, tempomodifier);
+                        app.playTrack(trackLoc, tempomodifier);
                         playerThread = new AudioPlayerThread();
                         playerThread.start();
                     }else{
@@ -183,7 +185,37 @@ public class MainWindow extends JFrame implements ActionListener {
             b.setBackground(new Color(142,219,216));
             b.setContentAreaFilled(false);
             b.setOpaque(true);
-            b.setFocusable(false);
+            //b.setFocusable(false);
+
+            b.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    JToggleButton gb = MainWindow.this.getGridButton(row, col);
+                    if(trackLocButton != null){
+                        trackLocButton.setBackground(new Color(142, 219, 216));
+                        trackLocButton.setContentAreaFilled(false);
+                        trackLocButton.setOpaque(true);
+                    }
+                    if (!gb.getBackground().equals(new Color(59, 91, 90))) {
+                        gb.setBackground(new Color(59, 91, 90));
+                        gb.setContentAreaFilled(false);
+                        gb.setOpaque(true);
+                        trackLocButton = gb;
+                        app.sequencer.setTickPosition((col-1)*tempo);
+                        trackLoc = app.sequencer.getMicrosecondPosition();
+                    } else {
+                        gb.setBackground(new Color(142, 219, 216));
+                        gb.setContentAreaFilled(false);
+                        gb.setOpaque(true);
+                        trackLocButton = null;
+                        trackLoc = 0;
+                    }
+                    System.out.println("r" + row + ",c" + col
+                            + " " + (b == gb)
+                            + " " + (b.equals(gb)));
+                    //System.out.println(gb.getText());
+                }
+            });
         }else if(row == defaultScale[1]-defaultScale[0]+1){
             b = new JToggleButton(col + "");
             b.setBackground(new Color(19,122,127));
@@ -198,25 +230,28 @@ public class MainWindow extends JFrame implements ActionListener {
             b.setFocusable(false);
         }else {
             b = new JToggleButton(String.valueOf("\u266A"));
-        }
-        b.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JToggleButton gb = MainWindow.this.getGridButton(row, col);
-                if(!gb.isOpaque()) {
-                    gb.setBackground(new Color(140, 35, 103));
-                    gb.setContentAreaFilled(false);
-                    gb.setOpaque(true);
-                }else{
-                    gb.setContentAreaFilled(true);
-                    gb.setOpaque(false);
+
+            b.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    JToggleButton gb = MainWindow.this.getGridButton(row, col);
+                    if(!gb.isOpaque()) {
+                        gb.setBackground(new Color(140, 35, 103));
+                        gb.setContentAreaFilled(false);
+                        gb.setOpaque(true);
+                    }else{
+                        gb.setContentAreaFilled(true);
+                        gb.setOpaque(false);
+                    }
+                    app.addNote(row+defaultScale[0],(col-1)*tempo);
+                    System.out.println("r" + row + ",c" + col
+                            + " " + (b == gb)
+                            + " " + (b.equals(gb)));
+                    //System.out.println(gb.getText());
                 }
-                System.out.println("r" + row + ",c" + col
-                        + " " + (b == gb)
-                        + " " + (b.equals(gb)));
-                //System.out.println(gb.getText());
-            }
-        });
+            });
+        }
+
         return b;
     }
 
@@ -253,7 +288,7 @@ public class MainWindow extends JFrame implements ActionListener {
                     gb.setBackground(new Color(140,35,103));
                     gb.setContentAreaFilled(false);
                     gb.setOpaque(true);
-                    System.out.println("Setting Note at: " + keyValue.x + ", " + keyValue.y);
+                    //System.out.println("Setting Note at: " + keyValue.x + ", " + keyValue.y);
                 }
                 noteMatrix.add(gb);
             }
@@ -285,7 +320,26 @@ public class MainWindow extends JFrame implements ActionListener {
         }
         public void run(){
             while(app.sequencer.isRunning()) {
-                scpane.getHorizontalScrollBar().setValue((int)(scpane.getHorizontalScrollBar().getMaximum()*((double)app.sequencer.getMicrosecondPosition()/app.sequencer.getMicrosecondLength())));
+                scpane.getHorizontalScrollBar().setValue((int)(scpane.getHorizontalScrollBar().getMaximum()*((double)(app.sequencer.getMicrosecondPosition()+tempo)/app.sequencer.getMicrosecondLength())));
+                Main.Tuple<Integer, Integer> keyValue = new Main().new Tuple<>(defaultScale[1]-defaultScale[0]+2,(int)(app.sequencer.getTickPosition()/tempo)+1);
+                JToggleButton tempLine = buttonHashMap.get(keyValue);
+                if(trackLocButton != null && trackLocButton != tempLine){
+                    tempLine.setSelected(true);
+                    tempLine.setBackground(new Color(59,91,90));
+                    tempLine.setContentAreaFilled(false);
+                    tempLine.setOpaque(true);
+                    trackLocButton.setBackground(new Color(142,219,216));
+                    trackLocButton.setContentAreaFilled(false);
+                    trackLocButton.setOpaque(true);
+                    trackLocButton = tempLine;
+                }else{
+                    tempLine.setSelected(true);
+                    tempLine.setBackground(new Color(59,91,90));
+                    tempLine.setContentAreaFilled(false);
+                    tempLine.setOpaque(true);
+                    trackLocButton = tempLine;
+                }
+
                 //System.out.println("Moving Pane: " + scpane.getHorizontalScrollBar().getValue());
                 try {
                     Thread.sleep(10);
