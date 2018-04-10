@@ -1,7 +1,4 @@
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.util.*;
 
 import javax.sound.midi.*;
@@ -127,6 +124,23 @@ public class MidiPlayer {
         if(debug)System.out.println("@" + notePosition + " key: " + note);
     }
 
+    public void setVolume(float vol){
+        Synthesizer synthesizer = (Synthesizer) sequencer;
+        MidiChannel[] channels = synthesizer.getChannels();
+
+        for(int i=0;i<channels.length;i++){
+            channels[i].controlChange(7,(int)(vol*127.0));
+        }
+    }
+
+    public void MidiWriter(String file){
+        try {
+            MidiSystem.write(sequencer.getSequence(),1,new File(file));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void MidiReader(String file) throws Exception {
         Sequence sequence = MidiSystem.getSequence(new File(file));
 
@@ -194,8 +208,13 @@ public class MidiPlayer {
             }
             System.out.println();
         }
+        if(soundInterval > 10000)
+            soundInterval = 180;
         main.tempo = soundInterval;
-        main.updateGridPanel(noteMap,(int)(longestTime/soundInterval));
+        if((int)(longestTime/soundInterval) > 1)
+            main.updateGridPanel(noteMap,(int)(longestTime/soundInterval));
+        else
+            main.updateGridPanel(noteMap,65);
 
         System.out.println(sequencer.getSequence().getTracks().length + ", " +  trackNumber);
         sequencer.getSequence().createTrack();

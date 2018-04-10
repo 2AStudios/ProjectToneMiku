@@ -11,10 +11,10 @@ public class MainWindow extends JFrame implements ActionListener {
     private JMenu fileM, editM, viewM;
     private JScrollPane scpane;
     private JPanel noteMatrix;
-    private JMenuItem exitI, cutI, copyI, pasteI, selectI, saveI, loadI, statusI;
+    private JMenuItem exitI, cutI, copyI, pasteI, selectI, newI, saveI, loadI, statusI;
     private JToolBar toolBar;
 
-    private JButton playTrackButton;
+    private JButton playTrackButton, stopTrackButton;
     private HashMap<String,ImageIcon> menuButtonImages = new HashMap<>();
 
     static int[] defaultScale = new int[]{48,95};//{36,95};
@@ -46,11 +46,13 @@ public class MainWindow extends JFrame implements ActionListener {
 
         noteMatrix = createGridPanel();
         scpane = new JScrollPane(noteMatrix);
+        scpane = new JScrollPane(noteMatrix);
 
         pane.add(scpane, BorderLayout.CENTER);
         pane.add(toolBar, BorderLayout.NORTH);
 
         setVisible(true);
+        app = new MidiPlayer("audio/blank.mid",this);
     }
 
     private void createMenuBar(){
@@ -63,6 +65,7 @@ public class MainWindow extends JFrame implements ActionListener {
         copyI = new JMenuItem("Copy");
         pasteI = new JMenuItem("Paste");
         selectI = new JMenuItem("Select All");
+        newI = new JMenuItem("New");
         saveI = new JMenuItem("Save");
         loadI = new JMenuItem("Load");
         statusI = new JMenuItem("Status");
@@ -72,6 +75,7 @@ public class MainWindow extends JFrame implements ActionListener {
         menuBar.add(editM);
         menuBar.add(viewM);
 
+        fileM.add(newI);
         fileM.add(saveI);
         fileM.add(loadI);
         fileM.add(exitI);
@@ -83,6 +87,7 @@ public class MainWindow extends JFrame implements ActionListener {
 
         viewM.add(statusI);
 
+        newI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK));
         saveI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, ActionEvent.CTRL_MASK));
         loadI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, ActionEvent.CTRL_MASK));
         cutI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, ActionEvent.CTRL_MASK));
@@ -90,6 +95,7 @@ public class MainWindow extends JFrame implements ActionListener {
         pasteI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, ActionEvent.CTRL_MASK));
         selectI.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, ActionEvent.CTRL_MASK));
 
+        newI.addActionListener(this);
         saveI.addActionListener(this);
         loadI.addActionListener(this);
         exitI.addActionListener(this);
@@ -104,18 +110,24 @@ public class MainWindow extends JFrame implements ActionListener {
         toolBar = new JToolBar();
         menuButtonImages.put("playbtn_icon", new ImageIcon(new ImageIcon("img/playbtn_icon.png").getImage().getScaledInstance(32, 32, Image.SCALE_DEFAULT)));
         menuButtonImages.put("pausebtn_icon", new ImageIcon(new ImageIcon("img/pausebtn_icon.png").getImage().getScaledInstance(32, 32, Image.SCALE_DEFAULT)));
+        menuButtonImages.put("stopbtn_icon", new ImageIcon(new ImageIcon("img/stopbtn_icon.png").getImage().getScaledInstance(32, 32, Image.SCALE_DEFAULT)));
 
         playTrackButton = new JButton(menuButtonImages.get("playbtn_icon"));
+        stopTrackButton = new JButton(menuButtonImages.get("stopbtn_icon"));
         toolBar.add(playTrackButton);
+        toolBar.add(stopTrackButton);
 
         playTrackButton.addActionListener(this);
+        stopTrackButton.addActionListener(this);
     }
 
     public void actionPerformed(ActionEvent e) {
         if(e.getSource() instanceof JMenuItem) {
             JMenuItem choice = (JMenuItem) e.getSource();
-            if (choice == saveI) {
-                //not yet implmented
+            if(choice == newI){
+                app = new MidiPlayer("audio/blank.mid",this);
+            }else if (choice == saveI) {
+                saveFile();
             } else if (choice == loadI) {
                 loadFile();
             } else if (choice == exitI) {
@@ -138,6 +150,21 @@ public class MainWindow extends JFrame implements ActionListener {
                     }
                 }
                 //addAudioColumn();
+            }else if (choice == stopTrackButton){
+                if(app != null){
+                    if (app.sequencer.isRunning()){
+                        playTrackButton.setIcon(menuButtonImages.get("playbtn_icon"));
+                        playerThread.interrupt();
+                    }
+                    app.pauseTrack();
+                }
+                trackLoc = 0;
+                if(trackLocButton != null) {
+                    trackLocButton.setBackground(new Color(142, 219, 216));
+                    trackLocButton.setContentAreaFilled(false);
+                    trackLocButton.setOpaque(true);
+                    trackLocButton = null;
+                }
             }
         }
 
@@ -169,6 +196,22 @@ public class MainWindow extends JFrame implements ActionListener {
             File selectedFile = jfc.getSelectedFile();
             System.out.println("Loading: " + selectedFile.getAbsolutePath());
             app = new MidiPlayer(selectedFile.getAbsolutePath(),this);
+        }
+    }
+
+    public void saveFile(){
+        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+
+        jfc.setDialogTitle("Save MIDI file");
+        jfc.setAcceptAllFileFilterUsed(false);
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("MIDI Audio Data Files", "mid");
+        jfc.addChoosableFileFilter(filter);
+
+        int returnValue = jfc.showSaveDialog(null);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = jfc.getSelectedFile();
+            System.out.println("Saving: " + selectedFile.getAbsolutePath());
+            app.MidiWriter(selectedFile.getAbsolutePath()+".mid");
         }
     }
 
@@ -290,11 +333,30 @@ public class MainWindow extends JFrame implements ActionListener {
                     gb.setContentAreaFilled(false);
                     gb.setOpaque(true);
                     //System.out.println("Setting Note at: " + keyValue.x + ", " + keyValue.y);
+                }else{
+                    if(gb.getText().equals(String.valueOf("\u266A"))) {
+                        gb.setContentAreaFilled(true);
+                        gb.setOpaque(false);
+                    }
                 }
                 noteMatrix.add(gb);
             }
         }
         scpane = new JScrollPane(noteMatrix);
+        scpane.getVerticalScrollBar().setUnitIncrement(16);
+
+        if(app != null){
+            if (!app.sequencer.isRunning())
+                app.pauseTrack();
+        }
+        trackLoc = 0;
+        if(trackLocButton != null) {
+            trackLocButton.setBackground(new Color(142, 219, 216));
+            trackLocButton.setContentAreaFilled(false);
+            trackLocButton.setOpaque(true);
+            trackLocButton = null;
+        }
+
         pane.add(scpane);
         pane.revalidate();
         validate();
