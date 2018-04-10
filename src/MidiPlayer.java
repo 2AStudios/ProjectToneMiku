@@ -10,8 +10,8 @@ public class MidiPlayer {
     public static final int NOTE_ON = 0x90;
     public static final int NOTE_OFF = 0x80;
     public static final String[] NOTE_NAMES = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-    public HashMap<Main.Tuple<Integer,Integer>, Main.Tuple<Integer,Long>> noteMap = new HashMap<>(); //Row, Col, Note, Time
-    public HashMap<Main.Tuple<Integer,Long>, Main.Tuple<MidiEvent,MidiEvent>> midiEventHashMap = new HashMap<>(); //Row, Col, StartEvent, EndEvent
+    public static HashMap<Main.Tuple<Integer,Integer>, Main.Tuple<Integer,Long>> noteMap = new HashMap<>(); //Row, Col, Note, Time
+    public static HashMap<Main.Tuple<Integer,Long>, Main.Tuple<MidiEvent,MidiEvent>> midiEventHashMap = new HashMap<>(); //Row, Col, StartEvent, EndEvent
 
     MainWindow main;
     Sequencer sequencer;
@@ -38,6 +38,7 @@ public class MidiPlayer {
             //sequencer.start();
             noteMap = new HashMap<>();
             midiEventHashMap = new HashMap<>();
+
             MidiReader(file);
 
         } catch (Exception e) {
@@ -113,21 +114,17 @@ public class MidiPlayer {
     }
 
     public void removeNote(int note, long notePosition){
-        ShortMessage newSM = null;
-        try {
-            sequencer.recordEnable(sequencer.getSequence().getTracks()[mainTrackIndex],0);
-            newSM = new ShortMessage(NOTE_ON,0,note,127);
-            MidiEvent me = new MidiEvent(newSM,notePosition);
-            sequencer.getSequence().getTracks()[mainTrackIndex].remove(me);
-            newSM = new ShortMessage(NOTE_OFF,0,note,127);
-            me = new MidiEvent(newSM,notePosition+main.tempo);
-            System.out.println(sequencer.getSequence().getTracks()[mainTrackIndex].remove(me));
-            sequencer.recordDisable(sequencer.getSequence().getTracks()[mainTrackIndex]);
+        Main.Tuple keyPair = new Main().new Tuple<>(note,notePosition);
+        for(Main.Tuple<Integer,Long> t : midiEventHashMap.keySet())
+            if(t.equals(keyPair))
+                keyPair = t;
 
-            if(debug)System.out.println("@" + me.getTick() + " key: " + newSM.getData1() + " velocity: " + newSM.getData2());
-        } catch (InvalidMidiDataException e) {
-            e.printStackTrace();
-        }
+        sequencer.recordEnable(sequencer.getSequence().getTracks()[mainTrackIndex],0);
+        System.out.println(sequencer.getSequence().getTracks()[mainTrackIndex].remove(midiEventHashMap.get(keyPair).x));
+        System.out.println(sequencer.getSequence().getTracks()[mainTrackIndex].remove(midiEventHashMap.get(keyPair).y));
+        //System.out.println(midiEventHashMap.remove(keyPair));
+        sequencer.recordDisable(sequencer.getSequence().getTracks()[mainTrackIndex]);
+        if(debug)System.out.println("@" + notePosition + " key: " + note);
     }
 
     public void MidiReader(String file) throws Exception {
@@ -178,7 +175,8 @@ public class MidiPlayer {
                         //System.out.println(sm.getChannel());
                         if(debug)System.out.println("Note on, " + noteName + octave + " key=" + key + " velocity: " + velocity);
                         noteMap.put(new Main().new Tuple<>(key-MainWindow.defaultScale[0],(int)(event.getTick()/soundInterval)+1),new Main().new Tuple<>(key,event.getTick()));
-                        midiEventHashMap.put(new Main().new Tuple<>(key,event.getTick()),new Main().new Tuple<>(event,event));
+                        midiEventHashMap.put(new Main().new Tuple<>(key,event.getTick()),new Main().new Tuple<>(track.get(i),track.get(i)));
+                        //System.out.println(midiEventHashMap.get(new Main().new Tuple<>(72,(long)3120))+ ", " + event.getTick());
                     } else if (sm.getCommand() == NOTE_OFF) {
                         int key = sm.getData1();
                         int octave = (key / 12) - 1;
@@ -186,7 +184,7 @@ public class MidiPlayer {
                         String noteName = NOTE_NAMES[note];
                         int velocity = sm.getData2();
                         if(debug)System.out.println("Note off, " + noteName + octave + " key=" + key + " velocity: " + velocity);
-                        midiEventHashMap.get(new Main().new Tuple<>(key,event.getTick()-soundInterval)).y = event;
+                        midiEventHashMap.get(new Main().new Tuple<>(key,event.getTick()-soundInterval)).y = track.get(i);
                     } else {
                         if(debug)System.out.println("Command:" + sm.getCommand());
                     }
@@ -198,6 +196,24 @@ public class MidiPlayer {
         }
         main.tempo = soundInterval;
         main.updateGridPanel(noteMap,(int)(longestTime/soundInterval));
+
+        System.out.println(sequencer.getSequence().getTracks().length + ", " +  trackNumber);
+        sequencer.getSequence().createTrack();
+        System.out.println(sequencer.getSequence().getTracks().length + ", " + trackNumber);
+        sequencer.recordEnable(sequencer.getSequence().getTracks()[trackNumber],0);
+        Iterator it = midiEventHashMap.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            sequencer.getSequence().getTracks()[trackNumber].add((MidiEvent)((Main.Tuple)pair.getValue()).x);
+            sequencer.getSequence().getTracks()[trackNumber].add((MidiEvent)((Main.Tuple)pair.getValue()).y);
+        }
+        sequencer.recordDisable(sequencer.getSequence().getTracks()[trackNumber]);
+        System.out.println(sequencer.getSequence().deleteTrack(sequencer.getSequence().getTracks()[mainTrackIndex]));
+        mainTrack = sequence.getTracks()[trackNumber-1];
+        mainTrackIndex = trackNumber-1;
+
+        sequencer.setSequence(sequencer.getSequence());
+
         /*Iterator it = noteMap.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();

@@ -48,5 +48,9 @@ public class Main {
             hash = hash * 31 + this.y.hashCode();
             return hash;
         }
+
+        public String toString(){
+            return "(" + this.x.toString() + ", " + this.y.toString() + ")";
+        }
     }
 }
