@@ -12,6 +12,7 @@ public class MidiPlayer {
 
     MainWindow main;
     Sequencer sequencer;
+    MidiEvent volumeControlEvent;
     int mainTrackIndex;
 
     private static final boolean debug = false;
@@ -117,20 +118,27 @@ public class MidiPlayer {
                 keyPair = t;
 
         sequencer.recordEnable(sequencer.getSequence().getTracks()[mainTrackIndex],0);
-        System.out.println(sequencer.getSequence().getTracks()[mainTrackIndex].remove(midiEventHashMap.get(keyPair).x));
-        System.out.println(sequencer.getSequence().getTracks()[mainTrackIndex].remove(midiEventHashMap.get(keyPair).y));
+        sequencer.getSequence().getTracks()[mainTrackIndex].remove(midiEventHashMap.get(keyPair).x);
+        sequencer.getSequence().getTracks()[mainTrackIndex].remove(midiEventHashMap.get(keyPair).y);
         //System.out.println(midiEventHashMap.remove(keyPair));
         sequencer.recordDisable(sequencer.getSequence().getTracks()[mainTrackIndex]);
         if(debug)System.out.println("@" + notePosition + " key: " + note);
     }
 
     public void setVolume(float vol){
-        Synthesizer synthesizer = (Synthesizer) sequencer;
-        MidiChannel[] channels = synthesizer.getChannels();
-
-        for(int i=0;i<channels.length;i++){
-            channels[i].controlChange(7,(int)(vol*127.0));
+        System.out.println("Setting Volume to:" + vol);
+        sequencer.recordEnable(sequencer.getSequence().getTracks()[mainTrackIndex],0);
+        try {
+            if(volumeControlEvent != null){
+                sequencer.getSequence().getTracks()[mainTrackIndex].remove(volumeControlEvent);
+            }
+            volumeControlEvent = new MidiEvent(new ShortMessage(ShortMessage.CONTROL_CHANGE,0,7,(int)(vol*127)),0);
+            sequencer.getSequence().getTracks()[mainTrackIndex].add(volumeControlEvent);
+        } catch (InvalidMidiDataException e) {
+            e.printStackTrace();
         }
+        sequencer.recordDisable(sequencer.getSequence().getTracks()[mainTrackIndex]);
+
     }
 
     public void MidiWriter(String file){
@@ -216,9 +224,9 @@ public class MidiPlayer {
         else
             main.updateGridPanel(noteMap,65);
 
-        System.out.println(sequencer.getSequence().getTracks().length + ", " +  trackNumber);
+        //System.out.println(sequencer.getSequence().getTracks().length + ", " +  trackNumber);
         sequencer.getSequence().createTrack();
-        System.out.println(sequencer.getSequence().getTracks().length + ", " + trackNumber);
+        //System.out.println(sequencer.getSequence().getTracks().length + ", " + trackNumber);
         sequencer.recordEnable(sequencer.getSequence().getTracks()[trackNumber],0);
         Iterator it = midiEventHashMap.entrySet().iterator();
         while (it.hasNext()) {
@@ -227,7 +235,7 @@ public class MidiPlayer {
             sequencer.getSequence().getTracks()[trackNumber].add((MidiEvent)((Main.Tuple)pair.getValue()).y);
         }
         sequencer.recordDisable(sequencer.getSequence().getTracks()[trackNumber]);
-        System.out.println(sequencer.getSequence().deleteTrack(sequencer.getSequence().getTracks()[mainTrackIndex]));
+        sequencer.getSequence().deleteTrack(sequencer.getSequence().getTracks()[mainTrackIndex]);
         mainTrack = sequence.getTracks()[trackNumber-1];
         mainTrackIndex = trackNumber-1;
 

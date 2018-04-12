@@ -4,6 +4,8 @@ import javax.swing.*;
 import java.util.*;
 import java.io.File;
 import javax.swing.JFileChooser;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.*;
 
 public class MainWindow extends JFrame implements ActionListener {
@@ -15,6 +17,7 @@ public class MainWindow extends JFrame implements ActionListener {
     private JToolBar toolBar;
 
     private JButton playTrackButton, stopTrackButton;
+    private JSlider volumeSlider, tempoSlider;
     private HashMap<String,ImageIcon> menuButtonImages = new HashMap<>();
 
     static int[] defaultScale = new int[]{48,95};//{36,95};
@@ -114,11 +117,34 @@ public class MainWindow extends JFrame implements ActionListener {
 
         playTrackButton = new JButton(menuButtonImages.get("playbtn_icon"));
         stopTrackButton = new JButton(menuButtonImages.get("stopbtn_icon"));
+
+        JPanel volumePanel = new JPanel(new GridBagLayout());
+        volumePanel.setSize(128,32);
+        JLabel volumeLabel = new JLabel("Volume", JLabel.CENTER);
+        volumeSlider = new JSlider(0,100,100);
+        JLabel tempoLabel = new JLabel("Tempo", JLabel.CENTER);
+        tempoSlider = new JSlider(0,100,50);
+        volumePanel.add(volumeLabel);
+        volumePanel.add(volumeSlider);
+        volumePanel.add(tempoLabel);
+        volumePanel.add(tempoSlider);
+        volumePanel.setBorder(BorderFactory.createTitledBorder("Controls"));
+
+
         toolBar.add(playTrackButton);
         toolBar.add(stopTrackButton);
+        toolBar.add(volumePanel);
 
         playTrackButton.addActionListener(this);
         stopTrackButton.addActionListener(this);
+        volumeSlider.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                if(app != null){
+                    app.setVolume((volumeSlider.getValue()+0.0f)/volumeSlider.getMaximum());
+                }
+            }
+        });
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -253,9 +279,7 @@ public class MainWindow extends JFrame implements ActionListener {
                         trackLocButton = null;
                         trackLoc = 0;
                     }
-                    System.out.println("r" + row + ",c" + col
-                            + " " + (b == gb)
-                            + " " + (b.equals(gb)));
+                    //System.out.println("r" + row + ",c" + col + " " + (b == gb) + " " + (b.equals(gb)));
                     //System.out.println(gb.getText());
                 }
             });
@@ -288,9 +312,7 @@ public class MainWindow extends JFrame implements ActionListener {
                         gb.setOpaque(false);
                         app.removeNote(row+defaultScale[0],(col-1)*tempo);
                     }
-                    System.out.println("r" + row + ",c" + col
-                            + " " + (b == gb)
-                            + " " + (b.equals(gb)));
+                    //System.out.println("r" + row + ",c" + col + " " + (b == gb) + " " + (b.equals(gb)));
                     //System.out.println(gb.getText());
                 }
             });
@@ -317,49 +339,72 @@ public class MainWindow extends JFrame implements ActionListener {
         System.out.println("Updating");
         scaleLength = newScaleLength;
         noteMatrix = new JPanel(new GridLayout(defaultScale[1]-defaultScale[0]+2, scaleLength+1));
-        for (int row = defaultScale[1]-defaultScale[0]+2; row > 0 ; row--) {
-            for(int col = 0; col<scaleLength;col++) {
-                JToggleButton gb;
-                Main.Tuple<Integer, Integer> keyValue = new Main().new Tuple<>(row,col);
-                if(buttonHashMap.containsKey(keyValue)){
-                    gb = buttonHashMap.get(keyValue);
-                }else {
-                    gb = createGridButton(row, col);
-                    buttonHashMap.put(keyValue, gb);
-                }
-                if(noteMap.containsKey(keyValue)){
-                    gb.setSelected(true);
-                    gb.setBackground(new Color(140,35,103));
-                    gb.setContentAreaFilled(false);
-                    gb.setOpaque(true);
-                    //System.out.println("Setting Note at: " + keyValue.x + ", " + keyValue.y);
-                }else{
-                    if(gb.getText().equals(String.valueOf("\u266A"))) {
-                        gb.setContentAreaFilled(true);
-                        gb.setOpaque(false);
+
+        JDialog dlg = new JDialog(this, "Progress Dialog", true);
+        JProgressBar dpb = new JProgressBar(0, noteMap.size());
+        JLabel jl = new JLabel("Loading Notes: 0 of " + noteMap.size());
+        dlg.add(BorderLayout.CENTER, dpb);
+        dlg.add(BorderLayout.NORTH, jl);
+        dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        dlg.setSize(300, 75);
+        dlg.setLocationRelativeTo(this);
+
+        Thread t = new Thread(new Runnable() {
+            public void run() {
+                int noteCount = 0;
+                for (int row = defaultScale[1]-defaultScale[0]+2; row > 0 ; row--) {
+                    for(int col = 0; col<scaleLength;col++) {
+                        JToggleButton gb;
+                        Main.Tuple<Integer, Integer> keyValue = new Main().new Tuple<>(row,col);
+                        if(buttonHashMap.containsKey(keyValue)){
+                            gb = buttonHashMap.get(keyValue);
+                        }else {
+                            gb = createGridButton(row, col);
+                            buttonHashMap.put(keyValue, gb);
+                        }
+                        if(noteMap.containsKey(keyValue)){
+                            gb.setSelected(true);
+                            gb.setBackground(new Color(140,35,103));
+                            gb.setContentAreaFilled(false);
+                            gb.setOpaque(true);
+                            noteCount++;
+                            jl.setText("Loading Notes: " + noteCount +" of " + noteMap.size());
+                            dpb.setValue(noteCount);
+                            //System.out.println("Setting Note at: " + keyValue.x + ", " + keyValue.y);
+                        }else{
+                            if(gb.getText().equals(String.valueOf("\u266A"))) {
+                                gb.setContentAreaFilled(true);
+                                gb.setOpaque(false);
+                                gb.setSelected(false);
+                            }
+                        }
+                        noteMatrix.add(gb);
                     }
                 }
-                noteMatrix.add(gb);
+                scpane = new JScrollPane(noteMatrix);
+                scpane.getVerticalScrollBar().setUnitIncrement(16);
+
+                if(app != null){
+                    if (!app.sequencer.isRunning())
+                        app.pauseTrack();
+                }
+                trackLoc = 0;
+                if(trackLocButton != null) {
+                    trackLocButton.setBackground(new Color(142, 219, 216));
+                    trackLocButton.setContentAreaFilled(false);
+                    trackLocButton.setOpaque(true);
+                    trackLocButton = null;
+                }
+
+                pane.add(scpane);
+                pane.revalidate();
+                validate();
+                dlg.setVisible(false);
+                dlg.dispose();
             }
-        }
-        scpane = new JScrollPane(noteMatrix);
-        scpane.getVerticalScrollBar().setUnitIncrement(16);
-
-        if(app != null){
-            if (!app.sequencer.isRunning())
-                app.pauseTrack();
-        }
-        trackLoc = 0;
-        if(trackLocButton != null) {
-            trackLocButton.setBackground(new Color(142, 219, 216));
-            trackLocButton.setContentAreaFilled(false);
-            trackLocButton.setOpaque(true);
-            trackLocButton = null;
-        }
-
-        pane.add(scpane);
-        pane.revalidate();
-        validate();
+        });
+        t.start();
+        dlg.setVisible(true);
         return 0;
     }
 
