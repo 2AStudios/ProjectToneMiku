@@ -145,6 +145,14 @@ public class MainWindow extends JFrame implements ActionListener {
                 }
             }
         });
+        tempoSlider.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                if(app != null){
+                    app.setTempo((tempoSlider.getValue()+0.0f)/tempoSlider.getMaximum()*2.0f);
+                }
+            }
+        });
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -221,6 +229,7 @@ public class MainWindow extends JFrame implements ActionListener {
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             File selectedFile = jfc.getSelectedFile();
             System.out.println("Loading: " + selectedFile.getAbsolutePath());
+            app.pauseTrack();
             app = new MidiPlayer(selectedFile.getAbsolutePath(),this);
         }
     }

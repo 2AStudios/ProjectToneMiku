@@ -14,8 +14,9 @@ public class MidiPlayer {
     Sequencer sequencer;
     MidiEvent volumeControlEvent;
     int mainTrackIndex;
+    float tempoSpeed = 1.0f;
 
-    private static final boolean debug = false;
+    private static final boolean debug = true;
 
     public MidiPlayer(String file, MainWindow main) {
         this.main = main;
@@ -33,6 +34,7 @@ public class MidiPlayer {
             // Sets the current sequence on which the sequencer operates.
             // The stream must point to MIDI file data.
             sequencer.setSequence(is);
+            //sequencer.setTempoFactor(0.1f);
             //sequencer.start();
             noteMap = new HashMap<>();
             midiEventHashMap = new HashMap<>();
@@ -47,7 +49,7 @@ public class MidiPlayer {
 
     public void playTrack(long startPoint, float tempo){
         sequencer.setMicrosecondPosition(startPoint);
-        sequencer.setTempoFactor(tempo);
+        sequencer.setTempoFactor(tempoSpeed);
         sequencer.start();
     }
 
@@ -138,7 +140,15 @@ public class MidiPlayer {
             e.printStackTrace();
         }
         sequencer.recordDisable(sequencer.getSequence().getTracks()[mainTrackIndex]);
+        //pauseTrack();
+        //playTrack(main.trackLoc,tempoSpeed);
 
+    }
+
+    public void setTempo(float tempo){
+        System.out.println("Tempo Factor: " + tempo);
+        tempoSpeed = tempo;
+        sequencer.setTempoFactor(tempo);
     }
 
     public void MidiWriter(String file){
@@ -216,7 +226,7 @@ public class MidiPlayer {
             }
             System.out.println();
         }
-        if(soundInterval > 10000)
+        if(soundInterval > 16000)
             soundInterval = 180;
         main.tempo = soundInterval;
         if((int)(longestTime/soundInterval) > 1)
