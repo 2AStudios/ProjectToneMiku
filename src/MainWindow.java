@@ -55,7 +55,7 @@ public class MainWindow extends JFrame implements ActionListener {
         pane.add(toolBar, BorderLayout.NORTH);
 
         setVisible(true);
-        app = new MidiPlayer("audio/blank.mid",this);
+        app = new MidiPlayer("audio/blank.mid",this,100);
     }
 
     private void createMenuBar(){
@@ -159,7 +159,19 @@ public class MainWindow extends JFrame implements ActionListener {
         if(e.getSource() instanceof JMenuItem) {
             JMenuItem choice = (JMenuItem) e.getSource();
             if(choice == newI){
-                app = new MidiPlayer("audio/blank.mid",this);
+                try {
+                    Integer i = Integer.parseInt((String) JOptionPane.showInputDialog(getContentPane(), "",
+                            "New Song Length: ", JOptionPane.INFORMATION_MESSAGE, null, null,
+                            "100"));
+                    if ((i != null) && (i > 0)) {
+                        app = new MidiPlayer("audio/blank.mid", this,i);
+                    }
+                }catch(Exception e0){
+                    JOptionPane.showMessageDialog(this,
+                            "That's not a number, baka.",
+                            "PEBKAC Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
             }else if (choice == saveI) {
                 saveFile();
             } else if (choice == loadI) {

@@ -14,12 +14,14 @@ public class MidiPlayer {
     Sequencer sequencer;
     MidiEvent volumeControlEvent;
     int mainTrackIndex;
+    int newScaleLength = 64;
     float tempoSpeed = 1.0f;
 
     private static final boolean debug = true;
 
-    public MidiPlayer(String file, MainWindow main) {
+    public MidiPlayer(String file, MainWindow main, int scaleLength) {
         this.main = main;
+        this.newScaleLength = scaleLength;
         try {
             // Obtains the default Sequencer connected to a default device.
             sequencer = MidiSystem.getSequencer();
@@ -45,6 +47,10 @@ public class MidiPlayer {
             e.printStackTrace();
         }
 
+    }
+
+    public MidiPlayer(String file, MainWindow main){
+        this(file, main,0);
     }
 
     public void playTrack(long startPoint, float tempo){
@@ -226,13 +232,13 @@ public class MidiPlayer {
             }
             System.out.println();
         }
-        if(soundInterval > 16000)
+        if(soundInterval > 16000) {
             soundInterval = 180;
-        main.tempo = soundInterval;
-        if((int)(longestTime/soundInterval) > 1)
-            main.updateGridPanel(noteMap,(int)(longestTime/soundInterval));
-        else
-            main.updateGridPanel(noteMap,65);
+            main.updateGridPanel(noteMap,newScaleLength+1);
+        }else {
+            main.tempo = soundInterval;
+            main.updateGridPanel(noteMap, (int) (longestTime / soundInterval)+newScaleLength);
+        }
 
         //System.out.println(sequencer.getSequence().getTracks().length + ", " +  trackNumber);
         sequencer.getSequence().createTrack();
